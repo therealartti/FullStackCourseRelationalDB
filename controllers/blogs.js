@@ -39,7 +39,13 @@ const blogFinder = async (req, res, next) => {
     next()
 }
   
-router.delete('/:id', blogFinder, async (req, res) => {
+router.delete('/:id', blogFinder, tokenExtractor, async (req, res) => {
+    if (!req.blog) {
+        return res.status(404).json({ error: 'Blog not found' })
+    }
+    if (req.blog.userId !== req.decodedToken.id) {
+        return res.status(403).json({ error: 'Only the author can delete this blog' })
+    }
     if (req.blog) {
         await req.blog.destroy()
     }
