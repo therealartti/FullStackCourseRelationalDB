@@ -17,7 +17,13 @@ User.init({
   },
   username: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: false,
+    validate: {
+      isEmail: {
+        args: true,
+        msg: "Validation isEmail on username failed"
+      }
+    }
   },
 }, {
   sequelize,
