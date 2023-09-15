@@ -2,6 +2,6 @@ POST http://localhost:3001/api/login
 Content-Type: application/json
 
 {
-    "username": "test@yahoo.fr",
+    "username": "new@yahoo.fr",
     "password": "secret"
 }

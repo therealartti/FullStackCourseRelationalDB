@@ -1,7 +1,7 @@
 const router = require('express').Router()
 const jwt = require('jsonwebtoken')
 
-const { ReadingList } = require('../models')
+const { ReadingList, User, Session } = require('../models')
 const { SECRET } = require('../util/config')
 
 router.post('/', async (req, res) => {
@@ -12,12 +12,22 @@ router.post('/', async (req, res) => {
   res.json(readinglistElements)
 })
 
-const tokenExtractor = (req, res, next) => {
+const tokenExtractor = async (req, res, next) => {
     const authorization = req.get('authorization')
     console.log(authorization)
     if (authorization && authorization.toLowerCase().startsWith('bearer ')) {
       try {
-        req.decodedToken = jwt.verify(authorization.substring(7), SECRET)
+        const token = authorization.substring(7)
+        sess = await Session.findOne({ where: { token } })
+        if (!sess) {
+            return res.status(401).json({ error: 'token invalid' })
+        }
+        req.token = token
+        req.decodedToken = jwt.verify(token, SECRET)
+        const user = await User.findByPk(req.decodedToken.id)
+        if (user.disabled) {
+          return res.status(401).json({ error: 'user is disabled, make new account' })
+        }
       } catch{
         return res.status(401).json({ error: 'token invalid' })
       }

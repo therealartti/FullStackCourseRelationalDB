@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken')
 const router = require('express').Router()
 
-const { Blog, User } = require('../models')
+const { Blog, User, Session } = require('../models')
 const { SECRET } = require('../util/config')
 const { Op } = require('sequelize')
 
@@ -28,18 +28,29 @@ router.get('/', async (req, res) => {
     res.json(blogs)
 })
 
-const tokenExtractor = (req, res, next) => {
-    const authorization = req.get('authorization')
-    if (authorization && authorization.toLowerCase().startsWith('bearer ')) {
-      try {
-        req.decodedToken = jwt.verify(authorization.substring(7), SECRET)
-      } catch{
-        return res.status(401).json({ error: 'token invalid' })
+const tokenExtractor = async (req, res, next) => {
+  const authorization = req.get('authorization')
+  console.log(authorization)
+  if (authorization && authorization.toLowerCase().startsWith('bearer ')) {
+    try {
+      const token = authorization.substring(7)
+      sess = await Session.findOne({ where: { token } })
+      if (!sess) {
+          return res.status(401).json({ error: 'token invalid' })
       }
-    }  else {
-      return res.status(401).json({ error: 'token missing' })
+      req.token = token
+      req.decodedToken = jwt.verify(token, SECRET)
+      const user = await User.findByPk(req.decodedToken.id)
+      if (user.disabled) {
+        return res.status(401).json({ error: 'user is disabled, make new account' })
+      }
+    } catch{
+      return res.status(401).json({ error: 'token invalid' })
     }
-    next()
+  }  else {
+    return res.status(401).json({ error: 'token missing' })
+  }
+  next()
 }
   
 router.post('/', tokenExtractor, async (req, res, next) => {
